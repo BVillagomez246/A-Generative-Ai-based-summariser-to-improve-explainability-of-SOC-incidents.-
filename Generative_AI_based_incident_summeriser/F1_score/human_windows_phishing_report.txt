@@ -1,0 +1,68 @@
+Investigation Report
+
+1. Validation / Detection
+
+The investigation was initiated based on a series of anomalous system events detected across multiple log sources, including file integrity changes, registry modifications, and suspicious executable executions. The primary indicators of compromise included the deletion of a sensitive file, `private.txt`, located in the `C:\Users\Windows\Documents\Sensitive\` directory, which triggered a file deletion alert (rule ID 553). Additionally, a registry key under `HKEY_LOCAL_MACHINE\Security\Policy\PolAdtEv` was altered around the same time, triggering rule ID 594, which suggests potential tampering with system integrity. The presence of a malicious executable, `windows_payload_encoded (2).exe`, flagged by 47 out of 71 security vendors as a trojan.dump/shellcode, confirmed the system was compromised. This executable was downloaded via a phishing email campaign and executed under a suspicious PowerShell context, further validating the detection.
+
+5Ws
+- Who: The attacker used a phishing email campaign to deliver `windows_payload_encoded (2).exe`, which was executed by the user after clicking a malicious link.
+- What: The malware was a trojan.dump/shellcode designed to execute shellcode, delete sensitive files, and modify registry keys. It also triggered PowerShell-based commands and attempted to evade detection.
+- When: The incident began on April 6, 2026, at 18:55:40 UTC+1, when the phishing email was received, and escalated through the execution of the malicious file at 19:15:56, with registry modifications occurring around 19:17:24.
+- Where: The attack occurred on the Windows host **DESKTOP-Q15QFHA**, with malicious activity originating from the IP address **192.168.175.133** and the phishing landing page hosted at **155.117.189.71:8080**.
+- Why: The attackers aimed to gain unauthorized access to the system, potentially to exfiltrate sensitive data or establish persistent control. The use of phishing, registry manipulation, and file deletion indicates an intent to compromise the system and disable security controls.
+
+2. Methodologies / Steps
+
+The investigation began by reviewing the incident timeline, starting with the detection of the phishing email sent to `licon@victim.com` on April 6, 2026, at 18:55:40 UTC+1. The email was generated using GoPhish and impersonated “system security@hotmail.com”, creating urgency through a “DEPLOY PROTECTION NOW” button that led to an attacker-controlled IP address. The next step involved analyzing the malicious payload, `windows_payload_encoded (2).exe`, which was downloaded and executed, triggering a cascade of security events including file deletion and registry modifications. The team then cross-referenced the execution context, noting that `SecEdit.exe` was launched via PowerShell from a non-standard location, indicating potential abuse of legitimate tools for system policy manipulation. Finally, the team reviewed the associated MITRE ATT&CK techniques, identifying T1059.001 (Execution) and T1565.001 (Registry Key Integrity Checksum Changed), which further validated the malicious intent.
+
+3. Findings
+
+The evidence collected indicates a multi-stage attack that began with a phishing email campaign and culminated in system compromise. The phishing email was designed to mimic a security alert, prompting the user to click a malicious button that led to a remote server in Secaucus, New Jersey, controlled by the attackers. Upon execution, the malicious executable `windows_payload_encoded (2).exe` triggered a series of harmful activities, including the deletion of a sensitive file (`private.txt`) and modifications to registry keys, which may have been used to evade detection or persist across reboots. The file was classified as a trojan.dump/shellcode and was flagged by multiple security vendors, confirming its malicious nature. The execution of `SecEdit.exe` from an unusual location and via PowerShell suggests the attackers may have attempted to modify system security policies, possibly to disable auditing or gain elevated privileges.
+
+IMAGE_HERE: figure_1
+
+Image note: This image shows a fake security alert designed to trick users into downloading malicious software. It falsely claims to be from Microsoft Security Center and urges the user to download a “security update” to fix detected threats — a common phishing scam exploiting fear to gain access to user systems.
+
+IMAGE_HERE: figure_2
+
+Image note: This image displays a fake security alert, commonly known as a phishing or scam message. It falsely claims the user’s system is under immediate threat from unauthorized access and malware, urging the user to click a “DEPLOY PROTECTION NOW” button to activate a “secure” solution — a tactic designed to create panic and prompt urgent action.
+
+IMAGE_HERE: figure_3
+
+Image note: This image displays a threat intelligence interface identifying a malicious activity labeled “trojan.dump/shellcode.” The threat is categorized under “trojan” and further classified by family labels: “dump,” “shellcode,” and “marte,” indicating the detection of a trojanized process that is dumping data or executing shellcode for malicious purposes such as remote control or data exfiltration.
+
+IMAGE_HERE: figure_4
+
+Image note: This image displays the “Basic properties” of a Windows executable file analyzed by a file inspection tool. The file was compiled using Microsoft Visual C++ (version 17.6) and linked with the Microsoft Linker, indicating it was built with Visual Studio 2022. The file size is 7.50 KB, and it is identified as a Win32 Executable with PE32 architecture, consistent with the findings in the malware notes.
+
+4. Scope
+
+The scope of the incident includes lateral movement, privilege escalation, and unidentified earlier events. The system was compromised via the execution of a malicious executable, which led to the deletion of a sensitive file and registry modifications. There is no evidence of lateral movement beyond the initial host, **DESKTOP-Q15QFHA**, or of privilege escalation beyond the initial execution context. The malware did not appear to have triggered any further events such as remote command execution or network exfiltration beyond the initial payload. The agent disconnection event following the execution confirms that the system was compromised, but no further events are documented in the provided summaries.
+
+Impact Assessment
+
+The impact of this incident is significant due to the deletion of a sensitive file (`private.txt`) and the modification of system registry keys, which may have been used to disable security controls or persist across reboots. The execution of a trojan.dump/shellcode suggests the potential for remote control or data exfiltration, which poses a serious threat to the organization’s data integrity. The use of phishing to deliver the malware indicates a targeted attack, which may have been aimed at specific users or systems. The presence of multiple security vendors flagging the file as malicious confirms the severity of the threat, and the fact that the malware triggered PowerShell-based commands suggests the attackers may have attempted to establish persistence or evade detection.
+
+Conclusion
+
+The investigation confirms a True Positive event. The evidence includes the detection of a malicious executable (`windows_payload_encoded (2).exe`) flagged by multiple security vendors, the deletion of a sensitive file, registry modifications, and the use of a phishing email campaign to deliver the payload. The associated MITRE ATT&CK techniques — T1059.001 and T1565.001 — further validate the malicious intent. Remediation steps taken include isolating the compromised host, removing the malicious file, and reviewing system logs for further signs of compromise.
+
+Next Steps / Call to Action
+
+Immediate actions include:
+
+- Isolating the host **DESKTOP-Q15QFHA** from the network to prevent further lateral movement or data exfiltration.
+- Reviewing the registry changes and file deletion events to determine if any system policies were altered or if additional files were modified.
+- Conducting a full forensic analysis of the system to identify any additional malware or persistence mechanisms.
+- Updating the organization’s phishing awareness training to include the specific tactics used in this campaign.
+- Implementing enhanced endpoint detection and response (EDR) solutions to detect and prevent similar attacks in the future.
+
+Future actions include:
+
+- Reviewing the threat intelligence feed to identify any additional indicators of compromise (IoCs) associated with the attacker’s infrastructure (IPs: 192.168.175.133 and 155.117.189.71:8080).
+- Implementing a more robust email filtering policy to prevent phishing emails from reaching users.
+- Enforcing stricter policies around the execution of executables from unknown sources, particularly via PowerShell or other elevated contexts.
+
+Final Summary
+
+The investigation confirms a successful phishing attack that delivered a trojan.dump/shellcode executable to a Windows host, resulting in the deletion of a sensitive file and registry modifications. The attackers used a GoPhish-based phishing campaign to impersonate a security entity, prompting the user to click a malicious button that led to an attacker-controlled IP address. The malware was executed via PowerShell, indicating an attempt to evade detection and establish persistence. The system was compromised, as evidenced by the agent disconnection event and the presence of multiple security vendor flags. The attackers targeted a specific user, leveraging fear and urgency to gain access to the system. Remediation steps have been taken to isolate the host and review system logs, with additional steps recommended to prevent future attacks. The incident is classified as a True Positive, with mitigation efforts focused on enhancing endpoint security and user awareness.

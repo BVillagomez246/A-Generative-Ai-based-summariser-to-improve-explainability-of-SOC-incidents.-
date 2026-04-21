@@ -1,0 +1,49 @@
+Investigation Report
+
+1. Validation / Detection
+
+This investigation began after reviewing SSH authentication activity recorded on the Ubuntu2 server (`192.168.175.130`). The logs showed a clear pattern of repeated failed login attempts from a single source, `192.168.175.128`, followed by a successful login, which strongly suggested brute force activity. The failed attempts were made against non-existent users such as `wow` and `root`, before access was eventually gained through the `ubuntu` account. The report also states that Wazuh logs and ATT&CK notes supported this detection and treated the activity as high severity because of the repeated failures followed by a successful session.
+
+5Ws
+
+- Who: The attacker activity originated from IP address `192.168.175.128`.
+- What: A brute force SSH attack was carried out, involving repeated failed logins before a successful login to the `ubuntu` account.
+- When: The main attack took place on **22 March 2026**, with the successful login recorded at around **23:01:29**. The report also notes later suspicious file changes on 6 April 2026.
+- Where: The target was the **Ubuntu2** server at `192.168.175.130`, and the activity described in the report remained on that host.
+- Why: Based on the report, the likely goal was to gain unauthorized access and then use that access to reach sensitive files or escalate privileges.
+
+2. Methodologies / Steps
+
+The investigation started with analysis of the SSH authentication logs in `brute_force_full_logs.csv`, which showed the sequence of failed and successful login attempts. After that, the activity was mapped against the MITRE ATT&CK framework, including techniques linked in the report to credential access, lateral movement, and valid account abuse. The investigation also used `investigation notes.txt` to add context around suspicious file integrity changes and the access to files such as `.ssh`, `Documents`, and `config.php`. In addition, the analyst reviewed the included figures to support the findings, including a bar chart showing failed login attempts by account and a donut chart summarising the main attack tactics.
+
+3. Findings
+
+The evidence in the report indicates that the attacker successfully compromised the Ubuntu2 server after several failed SSH login attempts. After the successful login to the `ubuntu` account, the attacker appears to have accessed a number of user and system locations, including `.ssh`, `Documents`, `Desktop`, `bash history`, `client_contacts.csv`, and `config.php`. This suggests that the attacker moved beyond initial access and began interacting with files that may have contained useful operational or user-related information. The report also links the later activity to tactics such as impact, defense evasion, and privilege escalation, although it notes that persistence was not confirmed with definite evidence.
+
+IMAGE_HERE: figure_1
+
+Image note: The bar chart titled **"Failed SSH Login Attempts by Account"** shows that the `wow` and `root` accounts each had five failed login attempts, while `ubuntu` had two. This supports the view that the attacker was trying multiple account names before successfully logging in.
+
+IMAGE_HERE: figure_2
+
+Image note: The donut chart titled **"Top tactics"** shows that **Impact** was the most common tactic, followed by **Defense Evasion** and **Privilege Escalation**. This suggests the attacker’s behaviour was not limited to gaining access, but may also have involved avoiding detection and affecting the system more broadly.
+
+4. Scope
+
+The scope of this incident includes the initial SSH brute force attack and the post-compromise activity that followed on the same host. According to the report, the attacker accessed both user files and system-related files, which suggests the compromise affected more than just authentication. The later detection of file integrity changes on **6 April 2026** expands the scope further, as it may point to continued or follow-on suspicious activity. Although the report states that these later changes were not definitively tied to the same session, they were still treated as part of the same incident trail.
+
+Impact Assessment
+
+The impact of this incident should be considered high because the attacker was able to gain access to a production server and reach sensitive files afterwards. The reported access to `.ssh`, account-related files, `client_contacts.csv`, and `config.php` raises concern about both system integrity and possible exposure of useful data. The report also highlights file integrity changes in important system files, which may indicate attempts to escalate privileges or alter the system in a way that supports continued access. Even without evidence of movement beyond the compromised host, the level of access described is enough to treat this as a serious security incident.
+
+Conclusion
+
+Based on the evidence presented, this incident should be classified as a **True Positive**. The sequence of repeated failed SSH login attempts, the successful login to the `ubuntu` account, and the later file-related activity all support the conclusion that the server was genuinely compromised. The report also connects the activity with high-severity ATT&CK techniques and notes that the attacker’s IP address, `192.168.175.128`, should be treated as malicious. Overall, the report shows a clear progression from attempted access to successful compromise and follow-on activity on the host.
+
+Next Steps / Call to Action
+
+The first step should be to block the attacker IP address, `192.168.175.128`, and tighten SSH authentication controls on the affected server. The report recommends actions such as disabling root login, enforcing multi-factor authentication, and applying stricter rate limiting to reduce the likelihood of future brute force attempts succeeding. It also states that a full forensic audit should be carried out to look for signs of persistence, privilege escalation, or further compromise. In addition, files such as `client_contacts.csv` should be reviewed for possible exposure, and ongoing log monitoring should continue in case related activity appears again.
+
+Final Summary
+
+This investigation confirmed a successful SSH brute force attack against the Ubuntu2 server. The attacker repeatedly attempted to log in using accounts such as `wow` and `root` before successfully gaining access through the `ubuntu` account. After access was gained, the attacker appears to have interacted with a number of user and system files, raising concerns about reconnaissance, data exposure, and possible privilege escalation. Later file integrity changes detected on 6 April 2026 suggest that the incident may have extended beyond the initial login event. Overall, the report supports a **True Positive** finding and shows that the compromise affected both system access and sensitive host files.

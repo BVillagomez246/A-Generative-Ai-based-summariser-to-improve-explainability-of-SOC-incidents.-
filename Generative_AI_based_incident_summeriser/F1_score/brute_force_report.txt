@@ -1,0 +1,53 @@
+# Investigation Report
+
+##IMAGE_HERE: background
+
+## 1. Validation / Detection
+
+The investigation was triggered by a combination of system logs and SIEM alerts that indicated repeated SSH authentication failures originating from the IP address 192.168.175.128. These logs, found in the `brute_force_full_logs.csv` file, showed a pattern of failed login attempts for invalid users such as “wow” and the root user, followed by a successful login for the “ubuntu” account. The logs were further flagged by a security monitoring system using MITRE ATT&CK techniques, specifically credential access (T1110) and lateral movement (T1021), which corroborates the presence of a targeted brute-force attack. Additionally, a high-severity alert (level 7, rule ID 550) was generated due to modifications in critical system files such as `/etc/passwd` and `/etc/shadow`, indicating potential privilege escalation or system compromise after initial access.
+
+## 5Ws
+
+- **Who**: The attacker was identified as originating from IP 192.168.175.128, attempting to gain unauthorized access to the Ubuntu server `ubuntu2`.
+- **What**: A brute-force SSH attack occurred, including failed attempts for users “wow” and “root”, followed by a successful login for “ubuntu”. Post-compromise, the attacker accessed sensitive files and modified core system files.
+- **When**: The attack was observed on 22 March 2026, with the system compromise confirmed on 6 April 2026, when file integrity alerts were triggered.
+- **Where**: The target was an Ubuntu server (IP: 192.168.175.130), with the attacker’s source IP being 192.168.175.128, indicating a local or internal network-based attack.
+- **Why**: The attacker likely sought to gain access to the system for reconnaissance, credential theft, or lateral movement, as indicated by the presence of sensitive files like `.ssh`, `client_contacts.csv`, and `config.php`.
+
+## 2. Methodologies / Steps
+
+The investigation began by reviewing SSH logs from the `brute_force_full_logs.csv` file, which documented failed and successful authentication attempts. The logs indicated a clear pattern of brute-force behavior, including multiple failed attempts for non-existent users and the root account, followed by a successful login for the “ubuntu” account. Next, the system’s integrity was assessed by checking for modifications to critical files such as `/etc/passwd`, `/etc/shadow`, `/etc/group`, and related files, which triggered a high-severity alert. The investigator also cross-referenced these findings with the `brute_force_attack_mitre.csv` file, which flagged the activity as MITRE ATT&CK T1110 (Credential Access) and T1021 (Lateral Movement). Finally, the `investigation notes.txt` was reviewed to confirm the timeline and contextualize the attacker’s behavior, including file access and system modifications.
+
+## 3. Findings
+
+Images:
+#IMAGE_HERE: figure_1
+
+Image note: The bar chart titled "Failed SSH Login Attempts by Account" shows that the “wow” and “root” accounts each had 5 failed login attempts, while the “ubuntu” account had 2 failed attempts. This supports the hypothesis that the attacker was attempting to brute-force credentials before successfully logging in as “ubuntu”.
+
+Images:
+#IMAGE_HERE: figure_2
+
+Image note: The ring chart titled "Top tactics" indicates that "Impact" is the most prevalent tactic, followed by "Defense Evasion," "Privilege Escalation," and "Persistence," with "Initial Access" being the least common. This suggests the attacker’s actions were focused on maximizing impact and maintaining persistence after gaining initial access.
+
+The attacker exploited SSH authentication to gain access, then used privilege escalation to modify critical system files, which indicates a successful compromise. The attacker also accessed sensitive files, including `client_contacts.csv`, which contains employee contact information, suggesting a potential data exfiltration or reconnaissance motive. The presence of modified system files indicates that the attacker may have been attempting to persist on the system or change user permissions to avoid detection.
+
+## 4. Scope
+
+The scope of the incident includes lateral movement within the system, as indicated by the attacker’s access to files such as `.ssh` and `config.php`, which are typically used for system access or configuration. Privilege escalation was confirmed by the modification of core system files such as `/etc/passwd` and `/etc/shadow`, suggesting the attacker gained elevated privileges or altered user accounts. The timeline spans from the initial SSH brute-force attempts on 22 March 2026 to the file modification on 6 April 2026, indicating a multi-stage attack. The scope may also include unidentified earlier events, as the investigation notes mention that the April activity may not be definitively linked to the same session, but is grouped as part of the incident trail.
+
+## Impact Assessment
+
+The impact of this incident is high, as the attacker gained access to the system and modified critical system files, which could allow for further compromise or privilege escalation. The modification of `/etc/passwd` and `/etc/shadow` files indicates that the attacker may have altered user accounts, potentially allowing for continued access or the ability to bypass authentication. The access to sensitive files such as `client_contacts.csv` and `config.php` suggests potential data exfiltration or internal reconnaissance, which could be used for further malicious purposes. The system’s compromised state also raises concerns about the potential for lateral movement to other systems or the possibility of the attacker using the system as a pivot point for further attacks.
+
+## Conclusion
+
+This incident is classified as a **True Positive**. The evidence from the logs, SIEM alerts, and investigation notes confirms a successful brute-force attack followed by system compromise and modification of critical files. The attacker’s behavior aligns with MITRE ATT&CK techniques, including credential access (T1110) and lateral movement (T1021), which further validates the incident. Remediation steps have been taken to investigate the file modifications, verify system integrity, and assess the potential for further compromise.
+
+## Next Steps / Call to Action
+
+Immediate actions include isolating the compromised system, reviewing system logs for additional signs of activity, and verifying the integrity of all critical system files. Future actions should include implementing stricter SSH authentication policies, such as disabling root login, enforcing MFA, and limiting SSH access to specific IPs. The investigation notes also recommend a review of the `client_contacts.csv` file for any unauthorized access or changes, as well as a review of the system’s access controls to prevent future brute-force attacks. Additionally, the system should be scanned for malware or rootkit activity, as the modification of core files suggests potential compromise.
+
+## Final Summary
+
+The investigation confirms a successful brute-force attack on an Ubuntu server, originating from IP 192.168.175.128. The attacker attempted to gain access through repeated failed SSH login attempts for invalid users and the root account, ultimately succeeding by logging in as the “ubuntu” user. Following the compromise, the attacker modified critical system files such as `/etc/passwd` and `/etc/shadow`, indicating privilege escalation and potential persistence. The attacker also accessed sensitive files like `client_contacts.csv` and `config.php`, suggesting reconnaissance or data exfiltration. The incident aligns with MITRE ATT&CK techniques, including credential access (T1110) and lateral movement (T1021), and was flagged by SIEM systems as high-severity. Remediation steps include system isolation, integrity verification, and policy enforcement to prevent future attacks.

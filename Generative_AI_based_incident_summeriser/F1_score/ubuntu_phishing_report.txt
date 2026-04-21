@@ -1,0 +1,69 @@
+# Investigation Report
+
+##IMAGE_HERE: background
+
+## 1. Validation / Detection
+
+The investigation confirms multiple indicators of a sophisticated phishing and malware campaign targeting a Linux-based system, likely within a Capture The Flag (CTF) environment. Security tools including Wazuh, AppArmor, and a custom SIEM system detected anomalous behavior, including file integrity changes, privilege escalation, and credential compromise attempts. The presence of MITRE ATT&CK techniques such as T1548 (Abuse Elevation Control Mechanism), T1110 (Credential Access), and T1565 (Impact) confirms a multi-stage attack vector. Additionally, the detection of a malicious ELF binary named “ubuntu_payload.elf” via multiple security vendors further validates the presence of a threat agent.
+
+## 5Ws
+
+- **Who**: The attacker appears to be using a phishing tool (GoPhish) to target a user account, likely “licon@victim.com”, impersonating “system security@hotmail.com”.
+- **What**: A phishing email was sent with a malicious link leading to an IP address (155.117.189.71) associated with a VPN server in Secaucus, New Jersey. The payload is a 64-bit ELF binary, identified as a trojan with Metasploit association.
+- **When**: The phishing event occurred on April 6, 2026, and the file integrity changes were detected between 20:44 and 20:48.
+- **Where**: The attack targets a Linux system running Ubuntu, with Wazuh and AppArmor active. The malicious payload was executed on a system with root-level access and persistence mechanisms.
+- **Why**: The attacker seeks to gain unauthorized access, escalate privileges, and establish persistence via credential compromise and file tampering. The use of a backdoor password suggests a long-term compromise.
+
+## 2. Methodologies / Steps
+
+The investigation began by analyzing system audit logs from Wazuh, which captured startup events, user sessions, and AppArmor denials. The logs revealed that Firefox snap apps were attempting to access system memory metrics, which were blocked — a red flag for potential app confinement issues. Further, the file integrity log indicated multiple checksum changes for `/opt/ctf/backup.sh`, which was flagged as tampered. The SIEM logs provided a detailed timeline of events including failed logins, successful sudo to root, and a new user account creation — all consistent with an active compromise. The malware analysis revealed the presence of a small ELF binary, identified as a trojan with shellcode and connectback capabilities. The static linking and filesystem interaction behaviors suggest a lightweight payload designed to persist and exfiltrate data.
+
+## 3. Findings
+
+The evidence suggests a coordinated attack that began with a phishing email, which successfully tricked the target user into clicking a malicious link. The link led to an IP address (155.117.189.71) associated with a known VPN server in Secaucus, New Jersey — a common hosting location for phishing infrastructure. The payload, “ubuntu_payload.elf”, was downloaded and executed, triggering a trojan shellcode that exploited the system’s privilege escalation mechanisms. The attack progressed through credential compromise (T1110), privilege escalation (T1548), and persistence mechanisms (T1136), culminating in the modification of critical system files. The system was also compromised via the creation of a new user account, likely for long-term persistence or reconnaissance.
+
+#IMAGE_HERE: figure_1  
+Image note: This image displays a fake security alert designed to create panic, urging the user to click a “DEPLOY PROTECTION NOW” button. It is a common phishing tactic used to trick users into downloading malware or providing credentials.
+
+#IMAGE_HERE: figure_2  
+Image note: This image shows a fake security alert from a “Linux Security Center” impersonating a legitimate security provider. It urges the user to download a “security update” — a classic phishing technique to install malware.
+
+#IMAGE_HERE: figure_3  
+Image note: This screenshot shows a dynamic analysis sandbox detection result, identifying the file as a “MALWARE TROJAN” with threat labels including “trojan.shellcode/metasploit” and “connectback”.
+
+#IMAGE_HERE: figure_4  
+Image note: This image displays a security alert indicating that 33 out of 64 vendors have flagged the file “ubuntu_payload.elf” as malicious, confirming its threat status.
+
+#IMAGE_HERE: figure_5  
+Image note: This image provides metadata for the “ubuntu_payload.elf” file, showing it is a statically linked 64-bit ELF binary with filesystem interaction behaviors — consistent with malware designed to persist and exfiltrate data.
+
+## 4. Scope
+
+The attack began with a phishing email, which led to the execution of a malicious ELF binary. The scope includes credential compromise, privilege escalation to root, and the creation of a new user account for persistence. The attack also involved file integrity tampering, suggesting the attacker modified critical system files. There is no evidence of lateral movement or further exploitation beyond the initial compromise. The timeline indicates the attack was active between 20:44 and 20:48, with no indication of subsequent events beyond the detection of the malware payload.
+
+## Impact Assessment
+
+The impact of this incident is high, as the attacker successfully escalated privileges to root and modified system files. The creation of a new user account suggests persistence mechanisms were established, potentially allowing for future command execution or data exfiltration. The use of a backdoor password and the presence of a trojan shellcode indicate a long-term compromise. The attack also involved credential compromise, which could have allowed the attacker to access other systems or accounts if the credentials were reused. The system’s use of AppArmor and Wazuh indicates that some protections were in place, but they were circumvented.
+
+## Conclusion
+
+This is a **True Positive**. The evidence from multiple sources — including SIEM logs, Wazuh audit logs, AppArmor denials, and malware analysis — confirms a successful phishing and malware campaign. The presence of MITRE ATT&CK techniques, file integrity changes, and a malicious ELF binary all point to a confirmed compromise. Remediation steps were taken, including isolating the compromised system, revoking credentials, and updating security policies.
+
+## Next Steps / Call to Action
+
+Immediate actions include:
+- Revoking the credentials for the compromised account (`licon@victim.com`) and changing all associated passwords.
+- Removing the malicious file (`ubuntu_payload.elf`) from the system and scanning for other compromised files.
+- Reviewing the AppArmor profile for Firefox to ensure it has appropriate permissions for system monitoring.
+- Updating the Wazuh configuration to enhance file integrity monitoring and reduce false positives.
+- Restricting user permissions for the `temp` account, which was used to copy sensitive files.
+
+Future actions include:
+- Conducting a full system audit to identify any other compromised files or accounts.
+- Implementing multi-factor authentication for all critical user accounts.
+- Reviewing the phishing campaign’s IP address (155.117.189.71) and blocking it at the firewall level.
+- Educating users on phishing awareness and the importance of not clicking suspicious links.
+
+## Final Summary
+
+The investigation confirms a successful phishing attack that led to the compromise of a Linux system running Ubuntu. The attacker used a GoPhish-based phishing campaign to trick a user into clicking a malicious link, which resulted in the download and execution of a trojan shellcode payload. The payload escalated privileges to root, modified critical system files, and created a new user account for persistence. The attack was detected via Wazuh, AppArmor, and a SIEM system, which flagged file integrity changes, privilege escalation, and credential compromise. The malware was identified as a 64-bit ELF binary with filesystem interaction behaviors, and the attack was confirmed as a true positive with multiple indicators of compromise. Remediation steps include credential revocation, file removal, and policy updates. The attacker’s infrastructure was linked to a known VPN server in Secaucus, New Jersey, and the campaign was active between 20:44 and 20:48. No lateral movement was observed, but the threat remains active and requires immediate response.

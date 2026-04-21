@@ -1,0 +1,56 @@
+Investigation Report
+
+1. Validation / Detection
+
+This investigation started after several alerts were triggered on a Linux-based system running Ubuntu. Security tools such as Wazuh, AppArmor, and a SIEM system detected unusual behaviour, including file integrity changes, failed login attempts, and signs of privilege escalation. Further analysis identified a suspicious ELF binary named `ubuntu_payload.elf`, which was flagged as malicious by multiple security vendors. The combination of these alerts strongly indicates that the system had been compromised through a coordinated attack.
+
+5Ws
+
+- Who: The attack appears to involve a phishing campaign targeting a user account, likely `licon@victim.com`.
+- What: A phishing email delivered a malicious ELF payload associated with trojan and shellcode behaviour.
+- When: The attack activity was observed on 6 April 2026, with key events occurring between 20:44 and 20:48.
+- Where: The attack targeted an Ubuntu-based Linux system, with activity linked to an external IP address (155.117.189.71).
+- Why: The attacker aimed to gain access, escalate privileges, and maintain persistence on the system.
+
+2. Methodologies / Steps
+
+The investigation began by analysing logs collected from Wazuh, which recorded system activity, user sessions, and file integrity events. AppArmor logs were also reviewed to identify any blocked or suspicious application behaviour. The SIEM system was used to build a timeline of events, including failed logins, successful privilege escalation, and user account creation. The suspicious ELF file was then analysed to understand its behaviour and confirm whether it was malicious.
+
+3. Findings
+
+The findings suggest that the attack began with a phishing email that successfully tricked the user into interacting with a malicious link. This led to the download and execution of the `ubuntu_payload.elf` file, which behaved like a trojan with shellcode capabilities. After execution, the attacker was able to escalate privileges to root level and modify important system files. A new user account was also created, which is likely to have been used for persistence or continued access. Overall, the activity shows a clear progression from initial access to system compromise.
+
+IMAGE_HERE: figure_1  
+Image note: This image shows a fake security alert designed to pressure the user into clicking a malicious button, which is a common phishing technique.
+
+IMAGE_HERE: figure_2  
+Image note: This image displays another fake security message impersonating a legitimate service to convince the user to download a malicious file.
+
+IMAGE_HERE: figure_3  
+Image note: This image shows malware analysis results identifying the file as a trojan with shellcode capabilities.
+
+IMAGE_HERE: figure_4  
+Image note: This image confirms that multiple security vendors flagged the file as malicious.
+
+IMAGE_HERE: figure_5  
+Image note: This image provides technical details of the ELF file, showing behaviour consistent with malware designed for persistence and system interaction.
+
+4. Scope
+
+The scope of the incident includes the initial phishing attack, execution of the malicious payload, and the resulting system compromise. The attacker was able to escalate privileges, modify files, and create a new user account. There is no clear evidence of lateral movement to other systems, but the actions taken on the host suggest a serious compromise. The incident appears to be limited to this system, although further checks would be required to confirm this.
+
+Impact Assessment
+
+The impact of this incident is high because the attacker gained root-level access to the system. This level of access allows full control over system operations, including modifying files, creating accounts, and potentially extracting data. The presence of a trojan payload also increases the risk of further malicious activity, such as remote access or data exfiltration. Overall, the system should be considered fully compromised.
+
+Conclusion
+
+This incident is classified as a True Positive. The evidence clearly shows a successful phishing attack followed by malware execution and privilege escalation. The presence of a malicious ELF file, file integrity changes, and new account creation confirms that the system was compromised. The attack demonstrates a complete chain from initial access to persistence.
+
+Next Steps / Call to Action
+
+Immediate actions should include removing the malicious file and revoking any compromised credentials. The system should be isolated and fully analysed to identify any remaining threats or persistence mechanisms. Security configurations, including AppArmor and monitoring rules, should be reviewed and strengthened. User awareness training should also be improved to reduce the risk of future phishing attacks.
+
+Final Summary
+
+A phishing attack led to the execution of a malicious ELF file on an Ubuntu system, resulting in privilege escalation and system compromise. The attacker gained root access, modified system files, and created a new user account for persistence. The malware was confirmed as a trojan with shellcode behaviour, and multiple security tools detected the activity. The incident is confirmed as a True Positive and requires immediate remediation.

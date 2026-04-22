@@ -14,14 +14,9 @@ from sentence_transformers import SentenceTransformer
 from final_report_manager_1 import FinalReportManager
 
 
-# Connect to your local LM Studio server
 client = AsyncOpenAI(api_key="lm-studio", base_url="http://127.0.0.1:1234/v1")
-
-# Load the embedding model used to turn text into vectors for retrieval
 embedding_model = SentenceTransformer("all-MiniLM-L6-v2")
 
-
-# Store the available models the user can choose from in the Chainlit UI
 MODEL_CONFIGS = {
     "qwen/qwen3-vl-4b": {
         "model": "qwen/qwen3-vl-4b",
@@ -52,12 +47,9 @@ MODEL_CONFIGS = {
     },
 }
 
-
-# System prompt for normal file question-answering
 SYSTEM_PROMPT = "You are a helpful assistant. Answer questions based only on the provided context."
+REPORT_QUESTION_PREFIX = "REPORT QUESTION:"
 
-
-# Prompt template used when generating the final investigation report
 FINAL_REPORT_PROMPT = """
 You are an expert SOC analyst writing a readable investigation report.
 
@@ -110,23 +102,18 @@ Include immediate actions and future actions.
 The final summary should be concise but detailed enough to capture the main ideas.
 """
 
-
-# Create the report manager that handles FINAL REPORT and REPORT QUESTION logic
 report_manager = FinalReportManager(
-    final_report_prompt=FINAL_REPORT_PROMPT
+    final_report_prompt=FINAL_REPORT_PROMPT,
+    report_question_prefix=REPORT_QUESTION_PREFIX
 )
 
-
-# Start ChromaDB locally and disable telemetry
 chroma_client = chromadb.Client(Settings(anonymized_telemetry=False))
 
 
-# Convert a piece of text into an embedding vector
 def get_embedding(text):
     return embedding_model.encode(text).tolist()
 
 
-# Split large text into smaller chunks before storing in ChromaDB
 def chunk_text(text, chunk_size=500):
     words = text.split()
     chunks = []
@@ -138,9 +125,6 @@ def chunk_text(text, chunk_size=500):
     return chunks
 
 
-# Read file contents
-# - PDF files are read page by page
-# - txt, md, csv files are read normally as text
 def read_text_file(file_path, file_name):
     if file_name.lower().endswith(".pdf"):
         reader = PdfReader(file_path)
@@ -157,7 +141,6 @@ def read_text_file(file_path, file_name):
         return f.read()
 
 
-# Get the model currently selected by the user from Chainlit settings
 def get_selected_model_settings():
     ui = cl.user_session.get("chat_settings") or {}
     selected_model = ui.get("LMModel", "qwen/qwen3-vl-4b")
@@ -168,8 +151,6 @@ def get_selected_model_settings():
     return config, is_vision_model
 
 
-# Runs once when the chat starts
-# Sets up the model dropdown, Chroma collection, and report session state
 @cl.on_chat_start
 async def start_chat():
     ui = await cl.ChatSettings(
@@ -202,19 +183,16 @@ async def start_chat():
     ).send()
 
 
-# Update the saved settings if the user changes model in the UI
 @cl.on_settings_update
 async def setup_agent(settings):
     cl.user_session.set("chat_settings", settings)
 
-# Main message handler
-# Controls:# 1. FINAL REPORT requests, # 2. REPORT QUESTION requests, # 3. File uploads, # 4. Normal Q&A on the current uploaded file
+
 @cl.on_message
 async def main(message: cl.Message):
     question_text = (message.content or "").strip()
     model_settings, is_vision_model = get_selected_model_settings()
 
-    # Check if the user is asking for the final report
     if report_manager.is_final_report_prompt(question_text):
         await report_manager.handle_final_report(
             question_text,
@@ -223,7 +201,6 @@ async def main(message: cl.Message):
         )
         return
 
-    # Check if the user is asking a question about an already generated report
     if report_manager.is_report_question_prompt(question_text):
         await report_manager.handle_report_question(
             question_text,
@@ -232,7 +209,6 @@ async def main(message: cl.Message):
         )
         return
 
-    # Handle uploaded files
     if message.elements:
         if question_text == "":
             await cl.Message(
@@ -246,10 +222,8 @@ async def main(message: cl.Message):
                 file_name = getattr(el, "name", "uploaded_file")
                 lower = file_name.lower()
 
-                # Save which file is the current one, so later questions use this file only
                 cl.user_session.set("current_source", file_name)
 
-                # Handle image uploads
                 if lower.endswith((".png", ".jpg", ".jpeg", ".webp")):
                     if not is_vision_model:
                         await cl.Message(
@@ -269,14 +243,12 @@ async def main(message: cl.Message):
 
                     data_url = f"data:{mime};base64,{b64}"
 
-                    # Show the uploaded image in the chat
                     image_msg = cl.Message(
                         content="",
                         elements=[cl.Image(path=file_path, name=file_name, display="inline")]
                     )
                     await image_msg.send()
 
-                    # Stream the model's answer below the image
                     text_msg = cl.Message(content="")
                     await text_msg.send()
 
@@ -304,7 +276,6 @@ async def main(message: cl.Message):
                     await stream.close()
                     await text_msg.update()
 
-                    # Save the image analysis output for later final report generation
                     report_manager.save_evidence_summary(
                         file_name=file_name,
                         question=question_text,
@@ -314,7 +285,6 @@ async def main(message: cl.Message):
 
                     return
 
-                # Handle text-based files
                 if lower.endswith((".pdf", ".txt", ".md", ".csv")):
                     status = cl.Message(content=f"Indexing `{file_name}`...")
                     await status.send()
@@ -324,7 +294,6 @@ async def main(message: cl.Message):
                     collection = cl.user_session.get("collection")
                     upload_stamp = int(time.time() * 1000)
 
-                    # Store each chunk and its embedding in ChromaDB
                     for i, chunk in enumerate(chunks):
                         embedding = get_embedding(chunk)
                         collection.add(
@@ -338,10 +307,8 @@ async def main(message: cl.Message):
                     await status.update()
                     break
 
-    # After indexing or on later questions, get the stored collection and current file
     collection = cl.user_session.get("collection")
     current_source = cl.user_session.get("current_source")
-
     if question_text == "":
         await cl.Message(content="❌ Please type your prompt.").send()
         return
@@ -354,7 +321,6 @@ async def main(message: cl.Message):
 
     context_parts = []
 
-    # Retrieve relevant chunks only from the current uploaded file
     if collection is not None and current_source is not None:
         query_embedding = get_embedding(question_text)
         results = collection.query(
@@ -376,13 +342,11 @@ async def main(message: cl.Message):
         ).send()
         return
 
-    # Build the prompt for normal file-based question answering
     messages = [
         {"role": "system", "content": SYSTEM_PROMPT},
         {"role": "user", "content": f"Context:\n{context}\n\nQuestion: {question_text}"}
     ]
 
-    # Stream the final answer back to the user
     msg = cl.Message(content="")
     await msg.send()
 
@@ -402,7 +366,6 @@ async def main(message: cl.Message):
     await stream.close()
     await msg.update()
 
-    # Save the normal answer as evidence for the final report later
     report_manager.save_evidence_summary(
         file_name=current_source or "unknown_file",
         question=question_text,

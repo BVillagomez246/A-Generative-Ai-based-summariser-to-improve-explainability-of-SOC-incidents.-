@@ -1,32 +1,25 @@
 import chainlit as cl
 
 
-# This class handles: 1. Saving evidence summaries, 2. Building the final report context, 3. Generating the final report, 
-# 4. Answering follow-up questions about the final report
 class FinalReportManager:
     def __init__(self, final_report_prompt, report_question_prefix="REPORT QUESTION:"):
         self.final_report_prompt = final_report_prompt
         self.report_question_prefix = report_question_prefix
 
-    # Create session state variables when the app starts
     def init_session(self):
         cl.user_session.set("evidence_summaries", [])
         cl.user_session.set("final_report_text", "")
 
-    # Check whether the user typed FINAL REPORT
     def is_final_report_prompt(self, text):
         if not text:
             return False
         return text.strip().upper().startswith("FINAL REPORT")
 
-    # Check whether the user typed REPORT QUESTION:
     def is_report_question_prompt(self, text):
         if not text:
             return False
         return text.strip().upper().startswith(self.report_question_prefix)
 
-    # Save one answer into the evidence list
-    # This is what later gets combined into the final report
     def save_evidence_summary(self, file_name, question, answer, kind="summary"):
         evidence = cl.user_session.get("evidence_summaries") or []
         evidence.append({
@@ -37,7 +30,6 @@ class FinalReportManager:
         })
         cl.user_session.set("evidence_summaries", evidence)
 
-    # Build one large text block from all saved evidence summaries
     def build_context(self):
         evidence = cl.user_session.get("evidence_summaries") or []
 
@@ -57,7 +49,6 @@ class FinalReportManager:
 
         return "\n\n".join(parts)
 
-    # Reusable function to stream model output to Chainlit
     async def stream_response(self, messages, client, used_settings):
         msg = cl.Message(content="")
         await msg.send()
@@ -80,7 +71,6 @@ class FinalReportManager:
         await msg.update()
         return full_response
 
-    # Generate the final report from all saved evidence
     async def handle_final_report(self, question_text, client, used_settings):
         context = self.build_context()
 
@@ -88,9 +78,8 @@ class FinalReportManager:
             await cl.Message(
                 content="❌ No saved summaries yet. Upload files first and ask questions before generating the final report."
             ).send()
-            return
+            return True
 
-        # If the user typed only FINAL REPORT, use the default report template
         if question_text.strip().upper() == "FINAL REPORT":
             report_prompt = self.final_report_prompt
         else:
@@ -107,14 +96,14 @@ class FinalReportManager:
             }
         ]
 
-        # Use unlimited output length for the final report
         report_settings = {**used_settings, "max_tokens": -1}
         full_response = await self.stream_response(messages, client, report_settings)
 
-        # Save the final report text so it can be queried later
         cl.user_session.set("final_report_text", full_response)
 
-    # Answer questions about the already generated final report
+
+        return True
+
     async def handle_report_question(self, question_text, client, used_settings):
         final_report = cl.user_session.get("final_report_text") or ""
 
@@ -122,7 +111,7 @@ class FinalReportManager:
             await cl.Message(
                 content="❌ No final report found yet. Generate the final report first by typing FINAL REPORT."
             ).send()
-            return
+            return True
 
         report_question = question_text[len(self.report_question_prefix):].strip()
 
@@ -130,7 +119,7 @@ class FinalReportManager:
             await cl.Message(
                 content="❌ Please type your question after REPORT QUESTION:"
             ).send()
-            return
+            return True
 
         messages = [
             {
@@ -149,3 +138,6 @@ class FinalReportManager:
         ]
 
         await self.stream_response(messages, client, used_settings)
+
+
+        return True
